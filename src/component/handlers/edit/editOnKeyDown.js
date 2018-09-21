@@ -44,6 +44,7 @@ const isChrome = UserAgent.isBrowser('Chrome');
 function onKeyCommand(
   command: DraftEditorCommand | string,
   editorState: EditorState,
+  e: SyntheticKeyboardEvent<HTMLElement>,
 ): EditorState {
   switch (command) {
     case 'redo':
@@ -57,7 +58,7 @@ function onKeyCommand(
     case 'backspace-word':
       return keyCommandBackspaceWord(editorState);
     case 'backspace-to-start-of-line':
-      return keyCommandBackspaceToStartOfLine(editorState);
+      return keyCommandBackspaceToStartOfLine(editorState, e);
     case 'split-block':
       return keyCommandInsertNewline(editorState);
     case 'transpose-characters':
@@ -84,7 +85,10 @@ function onKeyCommand(
  * See `getDefaultKeyBinding` for defaults. Alternatively, the top-level
  * component may provide a custom mapping via the `keyBindingFn` prop.
  */
-function editOnKeyDown(editor: DraftEditor, e: SyntheticKeyboardEvent<>): void {
+function editOnKeyDown(
+  editor: DraftEditor,
+  e: SyntheticKeyboardEvent<HTMLElement>,
+): void {
   const keyCode = e.which;
   const editorState = editor._latestEditorState;
   function callDeprecatedHandler(
@@ -192,7 +196,7 @@ function editOnKeyDown(editor: DraftEditor, e: SyntheticKeyboardEvent<>): void {
     return;
   }
 
-  const newState = onKeyCommand(command, editorState);
+  const newState = onKeyCommand(command, editorState, e);
   if (newState !== editorState) {
     editor.update(newState);
   }

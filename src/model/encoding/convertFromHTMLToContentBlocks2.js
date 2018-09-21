@@ -21,11 +21,13 @@ import type {EntityMap} from 'EntityMap';
 const CharacterMetadata = require('CharacterMetadata');
 const ContentBlock = require('ContentBlock');
 const ContentBlockNode = require('ContentBlockNode');
+const isHTMLElement = require('isHTMLElement');
 const DefaultDraftBlockRenderMap = require('DefaultDraftBlockRenderMap');
 const DraftEntity = require('DraftEntity');
 const {List, Map, OrderedSet} = require('immutable');
 const URI = require('URI');
-
+const isHTMLAnchorElement = require('isHTMLAnchorElement');
+const isHTMLImageElement = require('isHTMLImageElement');
 const cx = require('cx');
 const generateRandomKey = require('generateRandomKey');
 const getSafeBodyFromHTML = require('getSafeBodyFromHTML');
@@ -134,13 +136,16 @@ const getListItemDepth = (node: HTMLElement, depth: number = 0): number => {
  * Draftjs-compatible link.
  */
 const isValidAnchor = (node: Node) => {
-  return !!(
-    node instanceof HTMLAnchorElement &&
-    node.href &&
-    (node.protocol === 'http:' ||
-      node.protocol === 'https:' ||
-      node.protocol === 'mailto:')
-  );
+  if (isHTMLAnchorElement(node)) {
+    const castedNode: HTMLAnchorElement = (node: any);
+    return (
+      castedNode.href &&
+      (castedNode.protocol === 'http:' ||
+        castedNode.protocol === 'https:' ||
+        castedNode.protocol === 'mailto:')
+    );
+  }
+  return false;
 };
 
 /**
@@ -148,11 +153,14 @@ const isValidAnchor = (node: Node) => {
  * Draftjs-compatible image.
  */
 const isValidImage = (node: Node): boolean => {
-  return !!(
-    node instanceof HTMLImageElement &&
-    node.attributes.getNamedItem('src') &&
-    node.attributes.getNamedItem('src').value
-  );
+  if (isHTMLImageElement(node)) {
+    const castedNode: HTMLImageElement = (node: any);
+    return !!(
+      castedNode.attributes.getNamedItem('src') &&
+      castedNode.attributes.getNamedItem('src').value
+    );
+  }
+  return false;
 };
 
 /**
@@ -392,11 +400,12 @@ class ContentBlocksBuilder {
 
         if (
           !experimentalTreeDataSupport &&
-          node instanceof HTMLElement &&
+          isHTMLElement(node) &&
           (blockType === 'unordered-list-item' ||
             blockType === 'ordered-list-item')
         ) {
-          this.currentDepth = getListItemDepth(node, this.currentDepth);
+          const castedNode: HTMLElement = (node: any);
+          this.currentDepth = getListItemDepth(castedNode, this.currentDepth);
         }
 
         const key = generateRandomKey();
@@ -514,10 +523,10 @@ class ContentBlocksBuilder {
    * Add the content of an HTML img node to the internal state
    */
   _addImgNode(node: Node) {
-    if (!(node instanceof HTMLImageElement)) {
+    if (!isHTMLImageElement(node)) {
       return;
     }
-    const image: HTMLImageElement = node;
+    const image: HTMLImageElement = (node: any);
     const entityConfig = {};
 
     imgAttr.forEach(attr => {
@@ -538,7 +547,7 @@ class ContentBlocksBuilder {
     // we strip those out), unless the image is for presentation only.
     // See https://github.com/facebook/draft-js/issues/231 for some context.
     if (gkx('draftjs_fix_paste_for_img')) {
-      if (node.getAttribute('role') !== 'presentation') {
+      if (image.getAttribute('role') !== 'presentation') {
         this._appendText('\ud83d\udcf7');
       }
     } else {
@@ -556,10 +565,10 @@ class ContentBlocksBuilder {
   _addAnchorNode(node: Node, blockConfigs: Array<ContentBlockConfig>) {
     // The check has already been made by isValidAnchor but
     // we have to do it again to keep flow happy.
-    if (!(node instanceof HTMLAnchorElement)) {
+    if (!isHTMLAnchorElement(node)) {
       return;
     }
-    const anchor: HTMLAnchorElement = node;
+    const anchor: HTMLAnchorElement = (node: any);
     const entityConfig = {};
 
     anchorAttr.forEach(attr => {
@@ -586,11 +595,11 @@ class ContentBlocksBuilder {
    * styles (font-weight, font-style and text-decoration).
    */
   _updateStyleFromNodeAttributes(node: Node) {
-    if (!(node instanceof HTMLElement)) {
+    if (!isHTMLElement(node)) {
       return;
     }
 
-    const htmlElement = node;
+    const htmlElement: HTMLElement = (node: any);
     const fontWeight = htmlElement.style.fontWeight;
     const fontStyle = htmlElement.style.fontStyle;
     const textDecoration = htmlElement.style.textDecoration;
